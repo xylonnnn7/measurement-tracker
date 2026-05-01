@@ -41,6 +41,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 });
 
 firebase.auth().onAuthStateChanged(user => {
+  document.getElementById('viewLoading').style.display = 'none';
   if (user) {
     viewLogin.classList.add('hidden');
     showBuildingsView();
