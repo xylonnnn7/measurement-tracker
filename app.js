@@ -16,6 +16,42 @@ function escapeHtml(str) {
 }
 function today() { return new Date().toISOString().slice(0, 10); }
 
+// ── Auth ───────────────────────────────────────────────
+const viewLogin  = document.getElementById('viewLogin');
+const loginError = document.getElementById('loginError');
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!username || !password) { loginError.textContent = 'Enter username and password.'; return; }
+  try {
+    loginError.textContent = '';
+    await firebase.auth().signInWithEmailAndPassword(username + '@tracker.app', password);
+  } catch(e) {
+    loginError.textContent = 'Invalid username or password.';
+  }
+});
+
+document.getElementById('loginPassword').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('loginBtn').click();
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  firebase.auth().signOut();
+});
+
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    viewLogin.classList.add('hidden');
+    showBuildingsView();
+  } else {
+    viewLogin.classList.remove('hidden');
+    viewBuildings.classList.add('hidden');
+    viewObjects.classList.add('hidden');
+    viewTable.classList.add('hidden');
+  }
+});
+
 // ── Views ──────────────────────────────────────────────
 const viewBuildings = document.getElementById('viewBuildings');
 const viewObjects   = document.getElementById('viewObjects');

@@ -8,9 +8,24 @@
 </head>
 <body>
 
-  <!-- VIEW 1: Buildings list -->
-  <div class="container" id="viewBuildings">
+  <!-- LOGIN -->
+  <div class="container" id="viewLogin">
     <h1>Measurement Tracker</h1>
+    <p class="subtitle">Sign in to continue</p>
+    <div class="login-form">
+      <input type="text"     id="loginUsername" placeholder="Username" autocomplete="off" />
+      <input type="password" id="loginPassword" placeholder="Password" />
+      <button id="loginBtn">Sign In</button>
+      <p id="loginError" class="login-error"></p>
+    </div>
+  </div>
+
+  <!-- VIEW 1: Buildings list -->
+  <div class="container hidden" id="viewBuildings">
+    <div class="top-bar">
+      <h1>Measurement Tracker</h1>
+      <button id="logoutBtn" class="btn-logout">Sign Out</button>
+    </div>
     <p class="subtitle">Buildings</p>
     <div class="input-row">
       <input type="text" id="buildingInput" placeholder="Enter building name..." autocomplete="off" />
@@ -96,6 +111,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="firebase-config.js"></script>
   <script src="app.js"></script>
 </body>
