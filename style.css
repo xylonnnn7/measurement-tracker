@@ -69,7 +69,8 @@ h1 {
   flex-shrink: 0;
 }
 
-.qr-box img {
+.qr-box img,
+.qr-box canvas {
   border-radius: 8px;
   border: 1.5px solid #e5e7eb;
   display: block;
