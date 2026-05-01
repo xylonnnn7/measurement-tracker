@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Measurement Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- VIEW 1: Buildings list -->
+  <div class="container" id="viewBuildings">
+    <h1>Measurement Tracker</h1>
+    <p class="subtitle">Buildings</p>
+    <div class="input-row">
+      <input type="text" id="buildingInput" placeholder="Enter building name..." autocomplete="off" />
+      <button id="addBuildingBtn">+ Add</button>
+    </div>
+    <ul id="buildingList"></ul>
+    <p id="buildingEmptyMsg" class="empty-msg">No buildings yet. Add one above.</p>
+  </div>
+
+  <!-- VIEW 2: Objects inside a building -->
+  <div class="container hidden" id="viewObjects">
+    <button class="btn-back" id="backToBuildingsBtn">&#8592; Buildings</button>
+    <h1 id="buildingTitle"></h1>
+    <p class="subtitle">Objects</p>
+    <div class="input-row">
+      <input type="text" id="objectInput" placeholder="Enter object name..." autocomplete="off" />
+      <button id="addObjectBtn">+ Add</button>
+    </div>
+    <ul id="objectList"></ul>
+    <p id="objectEmptyMsg" class="empty-msg">No objects yet. Add one above.</p>
+  </div>
+
+  <!-- VIEW 3: Measurement table inside an object -->
+  <div class="container wide hidden" id="viewTable">
+    <button class="btn-back" id="backToObjectsBtn">&#8592; Objects</button>
+    <h1 id="objectTitle"></h1>
+
+    <!-- Status + QR side by side -->
+    <div class="status-qr-row">
+      <div class="status-left">
+        <div class="status-bar">
+          <div class="status-marker" id="markerExcellent">
+            <div class="marker-dot"></div>
+            <span>Excellent</span>
+          </div>
+          <div class="status-divider"></div>
+          <div class="status-marker" id="markerMid">
+            <div class="marker-dot"></div>
+            <span>Mid</span>
+          </div>
+          <div class="status-divider"></div>
+          <div class="status-marker" id="markerDangerous">
+            <div class="marker-dot"></div>
+            <span>Dangerous</span>
+          </div>
+        </div>
+        <p class="latest-date" id="latestDate"></p>
+      </div>
+
+      <div class="qr-box">
+        <img id="qrImage" alt="QR Code" width="140" height="140" />
+        <p class="qr-label">Scan for status</p>
+      </div>
+    </div>
+
+    <p class="subtitle" style="margin-top:24px;">Measurements</p>
+
+    <div class="table-wrapper">
+      <table id="measureTable">
+        <thead>
+          <tr>
+            <th>BG</th>
+            <th>LB</th>
+            <th>NB</th>
+            <th>Signed Date</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <p id="tableEmptyMsg" class="empty-msg">No rows yet. Add one below.</p>
+
+    <div class="add-row-form">
+      <input type="text" id="inputBG" placeholder="BG" />
+      <input type="text" id="inputLB" placeholder="LB" />
+      <input type="text" id="inputNB" placeholder="NB" />
+      <div class="status-picker">
+        <button class="pick-btn pick-excellent" data-status="excellent">Excellent</button>
+        <button class="pick-btn pick-mid"       data-status="mid">Mid</button>
+        <button class="pick-btn pick-dangerous" data-status="dangerous">Dangerous</button>
+      </div>
+      <button id="addRowBtn">+ Add Row</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
