@@ -47,7 +47,12 @@ function showTableView(objectId) {
   document.getElementById('objectTitle').textContent = o ? o.name : '';
   viewObjects.classList.add('hidden');
   viewTable.classList.remove('hidden');
-  generateQR(objectId);
+
+  // Generate permanent QR code for this object
+  const statusUrl = 'https://xylonnnn7.github.io/measurement-tracker/status.html?id=' + objectId;
+  document.getElementById('qrImg').src =
+    'https://chart.googleapis.com/chart?cht=qr&chs=180x180&chl=' + encodeURIComponent(statusUrl);
+
   watchRows(objectId);
 }
 
@@ -163,13 +168,6 @@ objectInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.g
 
 document.getElementById('backToBuildingsBtn').addEventListener('click', showBuildingsView);
 document.getElementById('backToObjectsBtn').addEventListener('click', () => showObjectsView(currentBuildingId));
-
-// ── QR Code (permanent per object) ────────────────────
-function generateQR(objectId) {
-  const url = `https://xylonnnn7.github.io/measurement-tracker/status.html?id=${objectId}`;
-  const src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
-  document.getElementById('qrImage').src = src;
-}
 
 // ── Table (real-time) ──────────────────────────────────
 const tableBody     = document.getElementById('tableBody');

@@ -51,32 +51,6 @@ h1 {
 }
 .btn-back:hover { text-decoration: underline; }
 
-/* ── QR box ───────────────────────────────── */
-.qr-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin-top: 20px;
-  padding: 20px;
-  background: #f8f9fc;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 12px;
-}
-
-.qr-title {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.qr-box img {
-  border-radius: 6px;
-  display: block;
-  background: #fff;
-}
 
 /* ── Status Bar ───────────────────────────── */
 .status-bar {
@@ -122,6 +96,32 @@ h1 {
 #markerDangerous.active span { color: #dc2626; }
 
 .status-divider { width: 40px; height: 2px; background: #e5e7eb; flex-shrink: 0; }
+
+.qr-section {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f8f9fc;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.qr-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #888;
+  margin-bottom: 14px;
+}
+
+.qr-section img {
+  width: 180px;
+  height: 180px;
+  display: block;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 8px;
+}
 
 .latest-date {
   text-align: center;
