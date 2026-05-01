@@ -1,25 +1,19 @@
-// Data: [{ name, objects: [{ name, rows: [{ bg, lb, nb, signedDate, status }] }] }]
-let raw = JSON.parse(localStorage.getItem('buildings') || '[]');
+// Collections: buildings/{id}, objects/{id}
+// objects store: { name, buildingId, buildingName, rows: [] }
 
-let buildings = raw.map(b => {
-  if (typeof b === 'string') return { name: b, objects: [] };
-  b.objects = (b.objects || []).map(o => {
-    if (typeof o === 'string') return { name: o, rows: [] };
-    return { name: o.name, rows: (o.rows || []) };
-  });
-  return b;
-});
+let buildingsCache    = [];
+let objectsCache      = [];
+let currentRows       = [];
+let currentBuildingId = null;
+let currentObjectId   = null;
+let selectedStatus    = null;
+let unsubscribeRows   = null;
 
-let currentBuilding = null;
-let currentObject   = null;
-let selectedStatus  = null;
-
-function save() { localStorage.setItem('buildings', JSON.stringify(buildings)); }
+const statusLabels = { excellent: 'Excellent', mid: 'Mid', dangerous: 'Dangerous' };
 
 function escapeHtml(str) {
   return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-
 function today() { return new Date().toISOString().slice(0, 10); }
 
 // ── Views ──────────────────────────────────────────────
@@ -28,148 +22,156 @@ const viewObjects   = document.getElementById('viewObjects');
 const viewTable     = document.getElementById('viewTable');
 
 function showBuildingsView() {
-  currentBuilding = currentObject = null;
+  if (unsubscribeRows) { unsubscribeRows(); unsubscribeRows = null; }
+  currentBuildingId = currentObjectId = null;
   viewObjects.classList.add('hidden');
   viewTable.classList.add('hidden');
   viewBuildings.classList.remove('hidden');
-  renderBuildings();
+  loadBuildings();
 }
 
-function showObjectsView(bIndex) {
-  currentBuilding = bIndex;
-  currentObject   = null;
-  document.getElementById('buildingTitle').textContent = buildings[bIndex].name;
+function showObjectsView(buildingId) {
+  currentBuildingId = buildingId;
+  currentObjectId   = null;
+  const b = buildingsCache.find(x => x.id === buildingId);
+  document.getElementById('buildingTitle').textContent = b ? b.name : '';
   viewBuildings.classList.add('hidden');
   viewTable.classList.add('hidden');
   viewObjects.classList.remove('hidden');
-  renderObjects();
+  loadObjects();
 }
 
-function showTableView(oIndex) {
-  currentObject = oIndex;
-  document.getElementById('objectTitle').textContent =
-    buildings[currentBuilding].objects[oIndex].name;
+function showTableView(objectId) {
+  currentObjectId = objectId;
+  const o = objectsCache.find(x => x.id === objectId);
+  document.getElementById('objectTitle').textContent = o ? o.name : '';
   viewObjects.classList.add('hidden');
   viewTable.classList.remove('hidden');
-  renderTable();
+  generateQR(objectId);
+  watchRows(objectId);
 }
 
 // ── Buildings ──────────────────────────────────────────
-const buildingInput    = document.getElementById('buildingInput');
 const buildingList     = document.getElementById('buildingList');
 const buildingEmptyMsg = document.getElementById('buildingEmptyMsg');
+const buildingInput    = document.getElementById('buildingInput');
 
-function renderBuildings() {
+async function loadBuildings() {
+  buildingList.innerHTML = '<li class="loading-msg">Loading...</li>';
+  const snap = await db.collection('buildings').orderBy('createdAt').get();
+  buildingsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   buildingList.innerHTML = '';
-  buildingEmptyMsg.style.display = buildings.length === 0 ? 'block' : 'none';
-  buildings.forEach((b, i) => {
+  buildingEmptyMsg.style.display = buildingsCache.length === 0 ? 'block' : 'none';
+  buildingsCache.forEach(b => {
     const li = document.createElement('li');
     li.className = 'list-item';
     li.innerHTML = `
       <span class="item-name">${escapeHtml(b.name)}</span>
       <div class="item-actions">
-        <button class="btn-open"   data-index="${i}">Open</button>
-        <button class="btn-delete" data-index="${i}">Remove</button>
+        <button class="btn-open"   data-id="${b.id}">Open</button>
+        <button class="btn-delete" data-id="${b.id}">Remove</button>
       </div>`;
     buildingList.appendChild(li);
   });
 }
 
-function addBuilding() {
-  const name = buildingInput.value.trim();
-  if (!name) return;
-  buildings.push({ name, objects: [] });
-  save(); renderBuildings();
-  buildingInput.value = '';
-  buildingInput.focus();
+async function addBuilding(name) {
+  await db.collection('buildings').add({ name, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  loadBuildings();
 }
 
-buildingList.addEventListener('click', (e) => {
-  const i = parseInt(e.target.dataset.index);
-  if (e.target.classList.contains('btn-open'))   showObjectsView(i);
-  if (e.target.classList.contains('btn-delete')) { buildings.splice(i, 1); save(); renderBuildings(); }
+async function deleteBuilding(id) {
+  // delete all objects belonging to this building first
+  const objSnap = await db.collection('objects').where('buildingId', '==', id).get();
+  const batch = db.batch();
+  objSnap.docs.forEach(d => batch.delete(d.ref));
+  batch.delete(db.collection('buildings').doc(id));
+  await batch.commit();
+  loadBuildings();
+}
+
+buildingList.addEventListener('click', e => {
+  const id = e.target.dataset.id;
+  if (e.target.classList.contains('btn-open'))   showObjectsView(id);
+  if (e.target.classList.contains('btn-delete')) deleteBuilding(id);
 });
 
-document.getElementById('addBuildingBtn').addEventListener('click', addBuilding);
-buildingInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addBuilding(); });
+document.getElementById('addBuildingBtn').addEventListener('click', () => {
+  const name = buildingInput.value.trim();
+  if (!name) return;
+  addBuilding(name);
+  buildingInput.value = '';
+});
+buildingInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('addBuildingBtn').click(); });
 
 // ── Objects ────────────────────────────────────────────
-const objectInput    = document.getElementById('objectInput');
 const objectList     = document.getElementById('objectList');
 const objectEmptyMsg = document.getElementById('objectEmptyMsg');
+const objectInput    = document.getElementById('objectInput');
 
-function renderObjects() {
+async function loadObjects() {
+  objectList.innerHTML = '<li class="loading-msg">Loading...</li>';
+  const snap = await db.collection('objects')
+    .where('buildingId', '==', currentBuildingId)
+    .orderBy('createdAt')
+    .get();
+  objectsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   objectList.innerHTML = '';
-  const objects = buildings[currentBuilding].objects;
-  objectEmptyMsg.style.display = objects.length === 0 ? 'block' : 'none';
-  objects.forEach((o, i) => {
+  objectEmptyMsg.style.display = objectsCache.length === 0 ? 'block' : 'none';
+  objectsCache.forEach(o => {
     const li = document.createElement('li');
     li.className = 'list-item';
     li.innerHTML = `
       <span class="item-name">${escapeHtml(o.name)}</span>
       <div class="item-actions">
-        <button class="btn-open"   data-index="${i}">Open</button>
-        <button class="btn-delete" data-index="${i}">Remove</button>
+        <button class="btn-open"   data-id="${o.id}">Open</button>
+        <button class="btn-delete" data-id="${o.id}">Remove</button>
       </div>`;
     objectList.appendChild(li);
   });
 }
 
-function addObject() {
-  const name = objectInput.value.trim();
-  if (!name) return;
-  buildings[currentBuilding].objects.push({ name, rows: [] });
-  save(); renderObjects();
-  objectInput.value = '';
-  objectInput.focus();
+async function addObject(name) {
+  const building = buildingsCache.find(b => b.id === currentBuildingId);
+  await db.collection('objects').add({
+    name,
+    buildingId:   currentBuildingId,
+    buildingName: building ? building.name : '',
+    rows:         [],
+    createdAt:    firebase.firestore.FieldValue.serverTimestamp()
+  });
+  loadObjects();
 }
 
-objectList.addEventListener('click', (e) => {
-  const i = parseInt(e.target.dataset.index);
-  if (e.target.classList.contains('btn-open'))   showTableView(i);
-  if (e.target.classList.contains('btn-delete')) {
-    buildings[currentBuilding].objects.splice(i, 1);
-    save(); renderObjects();
-  }
+async function deleteObject(id) {
+  await db.collection('objects').doc(id).delete();
+  loadObjects();
+}
+
+objectList.addEventListener('click', e => {
+  const id = e.target.dataset.id;
+  if (e.target.classList.contains('btn-open'))   showTableView(id);
+  if (e.target.classList.contains('btn-delete')) deleteObject(id);
 });
 
-document.getElementById('addObjectBtn').addEventListener('click', addObject);
-objectInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addObject(); });
+document.getElementById('addObjectBtn').addEventListener('click', () => {
+  const name = objectInput.value.trim();
+  if (!name) return;
+  addObject(name);
+  objectInput.value = '';
+});
+objectInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('addObjectBtn').click(); });
+
 document.getElementById('backToBuildingsBtn').addEventListener('click', showBuildingsView);
+document.getElementById('backToObjectsBtn').addEventListener('click', () => showObjectsView(currentBuildingId));
 
-// ── Table ──────────────────────────────────────────────
-const tableBody     = document.getElementById('tableBody');
-const tableEmptyMsg = document.getElementById('tableEmptyMsg');
-const latestDateEl  = document.getElementById('latestDate');
-const qrContainer   = document.getElementById('qrCode');
-const inputBG       = document.getElementById('inputBG');
-const inputLB       = document.getElementById('inputLB');
-const inputNB       = document.getElementById('inputNB');
-
-let qrInstance = null;
-
-const markers = {
-  excellent: document.getElementById('markerExcellent'),
-  mid:       document.getElementById('markerMid'),
-  dangerous: document.getElementById('markerDangerous'),
-};
-
-const statusLabels = { excellent: 'Excellent', mid: 'Mid', dangerous: 'Dangerous' };
-
-function updateStatusBar(status) {
-  Object.entries(markers).forEach(([key, el]) => el.classList.toggle('active', key === status));
-}
-
-function updateQR(latest) {
-  const bName = buildings[currentBuilding].name;
-  const oName = buildings[currentBuilding].objects[currentObject].name;
-  const text = latest
-    ? `Building: ${bName}\nObject: ${oName}\nStatus: ${statusLabels[latest.status] || '-'}\nSigned: ${latest.signedDate}`
-    : `Building: ${bName}\nObject: ${oName}\nNo measurements yet`;
-
+// ── QR Code (permanent per object) ────────────────────
+function generateQR(objectId) {
+  const qrContainer = document.getElementById('qrCode');
   qrContainer.innerHTML = '';
-  qrInstance = new QRCode(qrContainer, {
-    text,
+  const url = `https://xylonnnn7.github.io/measurement-tracker/status.html?id=${objectId}`;
+  new QRCode(qrContainer, {
+    text:       url,
     width:      140,
     height:     140,
     colorDark:  '#1a1a2e',
@@ -177,13 +179,23 @@ function updateQR(latest) {
   });
 }
 
-document.querySelectorAll('.pick-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    selectedStatus = btn.dataset.status;
-    document.querySelectorAll('.pick-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-  });
-});
+// ── Table (real-time) ──────────────────────────────────
+const tableBody     = document.getElementById('tableBody');
+const tableEmptyMsg = document.getElementById('tableEmptyMsg');
+const latestDateEl  = document.getElementById('latestDate');
+const inputBG       = document.getElementById('inputBG');
+const inputLB       = document.getElementById('inputLB');
+const inputNB       = document.getElementById('inputNB');
+
+const markers = {
+  excellent: document.getElementById('markerExcellent'),
+  mid:       document.getElementById('markerMid'),
+  dangerous: document.getElementById('markerDangerous'),
+};
+
+function updateStatusBar(status) {
+  Object.entries(markers).forEach(([key, el]) => el.classList.toggle('active', key === status));
+}
 
 function badgeHtml(status) {
   if (!status) return '';
@@ -192,15 +204,12 @@ function badgeHtml(status) {
 
 function renderTable() {
   tableBody.innerHTML = '';
-  const rows = buildings[currentBuilding].objects[currentObject].rows;
-  tableEmptyMsg.style.display = rows.length === 0 ? 'block' : 'none';
-
-  const latest = rows.length > 0 ? rows[rows.length - 1] : null;
+  tableEmptyMsg.style.display = currentRows.length === 0 ? 'block' : 'none';
+  const latest = currentRows.length > 0 ? currentRows[currentRows.length - 1] : null;
   updateStatusBar(latest ? latest.status : null);
   latestDateEl.textContent = latest ? 'Signed: ' + latest.signedDate : '';
-  updateQR(latest);
 
-  rows.forEach((row, i) => {
+  currentRows.forEach((row, i) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${escapeHtml(row.bg)}</td>
@@ -213,7 +222,23 @@ function renderTable() {
   });
 }
 
-function addRow() {
+function watchRows(objectId) {
+  if (unsubscribeRows) unsubscribeRows();
+  unsubscribeRows = db.collection('objects').doc(objectId).onSnapshot(doc => {
+    currentRows = doc.exists ? (doc.data().rows || []) : [];
+    renderTable();
+  });
+}
+
+document.querySelectorAll('.pick-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectedStatus = btn.dataset.status;
+    document.querySelectorAll('.pick-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  });
+});
+
+document.getElementById('addRowBtn').addEventListener('click', async () => {
   const row = {
     bg:         inputBG.value.trim(),
     lb:         inputLB.value.trim(),
@@ -221,24 +246,22 @@ function addRow() {
     signedDate: today(),
     status:     selectedStatus,
   };
-  buildings[currentBuilding].objects[currentObject].rows.push(row);
-  save(); renderTable();
+  await db.collection('objects').doc(currentObjectId)
+    .update({ rows: firebase.firestore.FieldValue.arrayUnion(row) });
   inputBG.value = inputLB.value = inputNB.value = '';
   selectedStatus = null;
   document.querySelectorAll('.pick-btn').forEach(b => b.classList.remove('selected'));
   inputBG.focus();
-}
-
-tableBody.addEventListener('click', (e) => {
-  if (e.target.classList.contains('btn-delete')) {
-    const i = parseInt(e.target.dataset.index);
-    buildings[currentBuilding].objects[currentObject].rows.splice(i, 1);
-    save(); renderTable();
-  }
 });
 
-document.getElementById('addRowBtn').addEventListener('click', addRow);
-document.getElementById('backToObjectsBtn').addEventListener('click', () => showObjectsView(currentBuilding));
+tableBody.addEventListener('click', async e => {
+  if (e.target.classList.contains('btn-delete')) {
+    const i = parseInt(e.target.dataset.index);
+    const rows = [...currentRows];
+    rows.splice(i, 1);
+    await db.collection('objects').doc(currentObjectId).update({ rows });
+  }
+});
 
 // ── Init ───────────────────────────────────────────────
 showBuildingsView();

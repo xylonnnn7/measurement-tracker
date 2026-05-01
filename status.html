@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Object Status</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+      padding: 36px 28px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .building-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 6px;
+    }
+
+    .object-name {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 28px;
+    }
+
+    /* Status markers */
+    .markers {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 20px;
+    }
+
+    .marker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+      opacity: 0.25;
+      transition: opacity 0.3s, transform 0.2s;
+    }
+
+    .marker.active { opacity: 1; transform: scale(1.1); }
+
+    .dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+    }
+
+    .marker-excellent .dot { background: #22c55e; }
+    .marker-mid       .dot { background: #f59e0b; }
+    .marker-dangerous .dot { background: #ef4444; }
+
+    .marker-excellent.active .dot { box-shadow: 0 0 16px rgba(34,197,94,0.55); }
+    .marker-mid.active       .dot { box-shadow: 0 0 16px rgba(245,158,11,0.55); }
+    .marker-dangerous.active .dot { box-shadow: 0 0 16px rgba(239,68,68,0.55); }
+
+    .marker span { font-size: 0.78rem; font-weight: 600; color: #888; }
+    .marker-excellent.active span { color: #16a34a; }
+    .marker-mid.active       span { color: #d97706; }
+    .marker-dangerous.active span { color: #dc2626; }
+
+    .divider { width: 32px; height: 2px; background: #e5e7eb; flex-shrink: 0; }
+
+    /* Status label */
+    .status-label {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .status-excellent { color: #16a34a; }
+    .status-mid       { color: #d97706; }
+    .status-dangerous { color: #dc2626; }
+    .status-none      { color: #aaa; }
+
+    .signed-date {
+      font-size: 0.88rem;
+      color: #888;
+      margin-bottom: 28px;
+    }
+
+    /* Measurement values */
+    .values {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 28px;
+    }
+
+    .value-card {
+      flex: 1;
+      background: #f8f9fc;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 14px 8px;
+    }
+
+    .value-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #999;
+      margin-bottom: 4px;
+    }
+
+    .value-num {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    .footer {
+      font-size: 0.75rem;
+      color: #ccc;
+    }
+
+    .loading { color: #aaa; font-size: 1rem; }
+    .error   { color: #ef4444; font-size: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="loading" class="loading">Loading...</div>
+    <div id="content" style="display:none">
+      <p class="building-label" id="buildingName"></p>
+      <h1 class="object-name" id="objectName"></h1>
+
+      <div class="markers">
+        <div class="marker marker-excellent" id="mExcellent">
+          <div class="dot"></div>
+          <span>Excellent</span>
+        </div>
+        <div class="divider"></div>
+        <div class="marker marker-mid" id="mMid">
+          <div class="dot"></div>
+          <span>Mid</span>
+        </div>
+        <div class="divider"></div>
+        <div class="marker marker-dangerous" id="mDangerous">
+          <div class="dot"></div>
+          <span>Dangerous</span>
+        </div>
+      </div>
+
+      <p class="status-label" id="statusLabel"></p>
+      <p class="signed-date"  id="signedDate"></p>
+
+      <div class="values" id="values"></div>
+
+      <p class="footer">Measurement Tracker</p>
+    </div>
+    <div id="errorMsg" class="error" style="display:none">Object not found.</div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
+    const statusLabels = { excellent: 'Excellent', mid: 'Mid', dangerous: 'Dangerous' };
+
+    const params   = new URLSearchParams(window.location.search);
+    const objectId = params.get('id');
+
+    if (!objectId) {
+      document.getElementById('loading').style.display  = 'none';
+      document.getElementById('errorMsg').style.display = 'block';
+    } else {
+      db.collection('objects').doc(objectId).onSnapshot(doc => {
+        document.getElementById('loading').style.display = 'none';
+
+        if (!doc.exists) {
+          document.getElementById('errorMsg').style.display = 'block';
+          return;
+        }
+
+        const data  = doc.data();
+        const rows  = data.rows || [];
+        const latest = rows.length > 0 ? rows[rows.length - 1] : null;
+
+        document.getElementById('buildingName').textContent = data.buildingName || '';
+        document.getElementById('objectName').textContent   = data.name || '';
+
+        const status = latest ? latest.status : null;
+
+        // Markers
+        ['mExcellent','mMid','mDangerous'].forEach(id => {
+          document.getElementById(id).classList.remove('active');
+        });
+        if (status === 'excellent') document.getElementById('mExcellent').classList.add('active');
+        if (status === 'mid')       document.getElementById('mMid').classList.add('active');
+        if (status === 'dangerous') document.getElementById('mDangerous').classList.add('active');
+
+        // Status label
+        const labelEl = document.getElementById('statusLabel');
+        if (status) {
+          labelEl.textContent  = statusLabels[status];
+          labelEl.className    = `status-label status-${status}`;
+        } else {
+          labelEl.textContent  = 'No measurements yet';
+          labelEl.className    = 'status-label status-none';
+        }
+
+        // Date
+        document.getElementById('signedDate').textContent =
+          latest ? 'Signed: ' + latest.signedDate : '';
+
+        // Values
+        const valuesEl = document.getElementById('values');
+        if (latest) {
+          valuesEl.innerHTML = `
+            <div class="value-card">
+              <div class="value-label">BG</div>
+              <div class="value-num">${latest.bg || '—'}</div>
+            </div>
+            <div class="value-card">
+              <div class="value-label">LB</div>
+              <div class="value-num">${latest.lb || '—'}</div>
+            </div>
+            <div class="value-card">
+              <div class="value-label">NB</div>
+              <div class="value-num">${latest.nb || '—'}</div>
+            </div>`;
+        }
+
+        document.getElementById('content').style.display = 'block';
+      });
+    }
+  </script>
+</body>
+</html>
