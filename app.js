@@ -90,20 +90,24 @@ function showTableView(objectId) {
   hideAll();
   viewTable.classList.remove('hidden');
 
-  // Generate permanent QR code for this object
-  const statusUrl = 'https://xylonnnn7.github.io/measurement-tracker/status.html?id=' + objectId;
-  const qrDiv = document.getElementById('qrCode');
-  qrDiv.innerHTML = '';
-  new QRCode(qrDiv, {
-    text: statusUrl,
-    width: 180,
-    height: 180,
-    colorDark: '#1a1a2e',
-    colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.H
-  });
-
   watchRows(objectId);
+
+  // Generate permanent QR code for this object
+  try {
+    const statusUrl = 'https://xylonnnn7.github.io/measurement-tracker/status.html?id=' + objectId;
+    const qrDiv = document.getElementById('qrCode');
+    qrDiv.innerHTML = '';
+    new QRCode(qrDiv, {
+      text: statusUrl,
+      width: 180,
+      height: 180,
+      colorDark: '#1a1a2e',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch(err) {
+    console.error('QR error:', err);
+  }
 }
 
 // ── Buildings ──────────────────────────────────────────
@@ -286,12 +290,17 @@ document.getElementById('addRowBtn').addEventListener('click', async () => {
     signedDate: today(),
     status:     selectedStatus,
   };
-  await db.collection('objects').doc(currentObjectId)
-    .update({ rows: firebase.firestore.FieldValue.arrayUnion(row) });
-  inputBG.value = inputLB.value = inputNB.value = '';
-  selectedStatus = null;
-  document.querySelectorAll('.pick-btn').forEach(b => b.classList.remove('selected'));
-  inputBG.focus();
+  try {
+    await db.collection('objects').doc(currentObjectId)
+      .update({ rows: [...currentRows, row] });
+    inputBG.value = inputLB.value = inputNB.value = '';
+    selectedStatus = null;
+    document.querySelectorAll('.pick-btn').forEach(b => b.classList.remove('selected'));
+    inputBG.focus();
+  } catch(err) {
+    console.error('Add row error:', err);
+    alert('Failed to save row: ' + err.message);
+  }
 });
 
 tableBody.addEventListener('click', async e => {
