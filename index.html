@@ -38,31 +38,29 @@
     <button class="btn-back" id="backToObjectsBtn">&#8592; Objects</button>
     <h1 id="objectTitle"></h1>
 
-    <div class="status-qr-row">
-      <div class="status-left">
-        <div class="status-bar">
-          <div class="status-marker" id="markerExcellent">
-            <div class="marker-dot"></div>
-            <span>Excellent</span>
-          </div>
-          <div class="status-divider"></div>
-          <div class="status-marker" id="markerMid">
-            <div class="marker-dot"></div>
-            <span>Mid</span>
-          </div>
-          <div class="status-divider"></div>
-          <div class="status-marker" id="markerDangerous">
-            <div class="marker-dot"></div>
-            <span>Dangerous</span>
-          </div>
-        </div>
-        <p class="latest-date" id="latestDate"></p>
+    <!-- Status bar -->
+    <div class="status-bar" style="margin-top:16px;">
+      <div class="status-marker" id="markerExcellent">
+        <div class="marker-dot"></div>
+        <span>Excellent</span>
       </div>
+      <div class="status-divider"></div>
+      <div class="status-marker" id="markerMid">
+        <div class="marker-dot"></div>
+        <span>Mid</span>
+      </div>
+      <div class="status-divider"></div>
+      <div class="status-marker" id="markerDangerous">
+        <div class="marker-dot"></div>
+        <span>Dangerous</span>
+      </div>
+    </div>
+    <p class="latest-date" id="latestDate"></p>
 
-      <div class="qr-box">
-        <canvas id="qrCanvas"></canvas>
-        <p class="qr-label">Scan for status</p>
-      </div>
+    <!-- QR code -->
+    <div class="qr-box">
+      <p class="qr-title">Scan for status</p>
+      <canvas id="qrCanvas"></canvas>
     </div>
 
     <p class="subtitle" style="margin-top:24px;">Measurements</p>

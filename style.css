@@ -51,35 +51,30 @@ h1 {
 }
 .btn-back:hover { text-decoration: underline; }
 
-/* ── Status + QR row ─────────────────────── */
-.status-qr-row {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  margin-top: 16px;
-}
-
-.status-left { flex: 1; min-width: 0; }
-
+/* ── QR box ───────────────────────────────── */
 .qr-box {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.qr-box img,
-.qr-box canvas {
-  border-radius: 8px;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 20px;
+  background: #f8f9fc;
   border: 1.5px solid #e5e7eb;
-  display: block;
+  border-radius: 12px;
 }
 
-.qr-label {
-  font-size: 0.75rem;
-  color: #aaa;
-  text-align: center;
+.qr-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.qr-box canvas {
+  border-radius: 6px;
+  display: block;
 }
 
 /* ── Status Bar ───────────────────────────── */
