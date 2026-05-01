@@ -166,13 +166,9 @@ document.getElementById('backToObjectsBtn').addEventListener('click', () => show
 
 // ── QR Code (permanent per object) ────────────────────
 function generateQR(objectId) {
-  const canvas = document.getElementById('qrCanvas');
   const url = `https://xylonnnn7.github.io/measurement-tracker/status.html?id=${objectId}`;
-  QRCode.toCanvas(canvas, url, {
-    width:  150,
-    margin: 2,
-    color:  { dark: '#1a1a2e', light: '#ffffff' },
-  }, err => { if (err) console.error('QR error:', err); });
+  const src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
+  document.getElementById('qrImage').src = src;
 }
 
 // ── Table (real-time) ──────────────────────────────────

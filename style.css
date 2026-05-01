@@ -72,9 +72,10 @@ h1 {
   letter-spacing: 0.06em;
 }
 
-.qr-box canvas {
+.qr-box img {
   border-radius: 6px;
   display: block;
+  background: #fff;
 }
 
 /* ── Status Bar ───────────────────────────── */
