@@ -58,11 +58,17 @@ const viewBuildings = document.getElementById('viewBuildings');
 const viewObjects   = document.getElementById('viewObjects');
 const viewTable     = document.getElementById('viewTable');
 
+function hideAll() {
+  viewLogin.classList.add('hidden');
+  viewBuildings.classList.add('hidden');
+  viewObjects.classList.add('hidden');
+  viewTable.classList.add('hidden');
+}
+
 function showBuildingsView() {
   if (unsubscribeRows) { unsubscribeRows(); unsubscribeRows = null; }
   currentBuildingId = currentObjectId = null;
-  viewObjects.classList.add('hidden');
-  viewTable.classList.add('hidden');
+  hideAll();
   viewBuildings.classList.remove('hidden');
   loadBuildings();
 }
@@ -72,8 +78,7 @@ function showObjectsView(buildingId) {
   currentObjectId   = null;
   const b = buildingsCache.find(x => x.id === buildingId);
   document.getElementById('buildingTitle').textContent = b ? b.name : '';
-  viewBuildings.classList.add('hidden');
-  viewTable.classList.add('hidden');
+  hideAll();
   viewObjects.classList.remove('hidden');
   loadObjects();
 }
@@ -82,7 +87,7 @@ function showTableView(objectId) {
   currentObjectId = objectId;
   const o = objectsCache.find(x => x.id === objectId);
   document.getElementById('objectTitle').textContent = o ? o.name : '';
-  viewObjects.classList.add('hidden');
+  hideAll();
   viewTable.classList.remove('hidden');
 
   // Generate permanent QR code for this object
