@@ -92,9 +92,16 @@ function showTableView(objectId) {
 
   // Generate permanent QR code for this object
   const statusUrl = 'https://xylonnnn7.github.io/measurement-tracker/status.html?id=' + objectId;
-  QRCode.toDataURL(statusUrl, { width: 180, margin: 2 })
-    .then(dataUrl => { document.getElementById('qrImg').src = dataUrl; })
-    .catch(err => console.error('QR error:', err));
+  const qrDiv = document.getElementById('qrCode');
+  qrDiv.innerHTML = '';
+  new QRCode(qrDiv, {
+    text: statusUrl,
+    width: 180,
+    height: 180,
+    colorDark: '#1a1a2e',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.H
+  });
 
   watchRows(objectId);
 }
