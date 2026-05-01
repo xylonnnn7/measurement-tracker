@@ -92,8 +92,9 @@ function showTableView(objectId) {
 
   // Generate permanent QR code for this object
   const statusUrl = 'https://xylonnnn7.github.io/measurement-tracker/status.html?id=' + objectId;
-  document.getElementById('qrImg').src =
-    'https://chart.googleapis.com/chart?cht=qr&chs=180x180&chl=' + encodeURIComponent(statusUrl);
+  QRCode.toDataURL(statusUrl, { width: 180, margin: 2 })
+    .then(dataUrl => { document.getElementById('qrImg').src = dataUrl; })
+    .catch(err => console.error('QR error:', err));
 
   watchRows(objectId);
 }
