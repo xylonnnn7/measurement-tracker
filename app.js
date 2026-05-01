@@ -141,10 +141,12 @@ document.getElementById('backToBuildingsBtn').addEventListener('click', showBuil
 const tableBody     = document.getElementById('tableBody');
 const tableEmptyMsg = document.getElementById('tableEmptyMsg');
 const latestDateEl  = document.getElementById('latestDate');
-const qrImage       = document.getElementById('qrImage');
+const qrContainer   = document.getElementById('qrCode');
 const inputBG       = document.getElementById('inputBG');
 const inputLB       = document.getElementById('inputLB');
 const inputNB       = document.getElementById('inputNB');
+
+let qrInstance = null;
 
 const markers = {
   excellent: document.getElementById('markerExcellent'),
@@ -161,13 +163,18 @@ function updateStatusBar(status) {
 function updateQR(latest) {
   const bName = buildings[currentBuilding].name;
   const oName = buildings[currentBuilding].objects[currentObject].name;
-  let text;
-  if (latest) {
-    text = `Building: ${bName}\nObject: ${oName}\nStatus: ${statusLabels[latest.status] || '-'}\nSigned: ${latest.signedDate}`;
-  } else {
-    text = `Building: ${bName}\nObject: ${oName}\nNo measurements yet`;
-  }
-  qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(text)}`;
+  const text = latest
+    ? `Building: ${bName}\nObject: ${oName}\nStatus: ${statusLabels[latest.status] || '-'}\nSigned: ${latest.signedDate}`
+    : `Building: ${bName}\nObject: ${oName}\nNo measurements yet`;
+
+  qrContainer.innerHTML = '';
+  qrInstance = new QRCode(qrContainer, {
+    text,
+    width:      140,
+    height:     140,
+    colorDark:  '#1a1a2e',
+    colorLight: '#ffffff',
+  });
 }
 
 document.querySelectorAll('.pick-btn').forEach(btn => {
