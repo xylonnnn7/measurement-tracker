@@ -58,7 +58,7 @@ const buildingInput    = document.getElementById('buildingInput');
 
 async function loadBuildings() {
   buildingList.innerHTML = '<li class="loading-msg">Loading...</li>';
-  const snap = await db.collection('buildings').orderBy('createdAt').get();
+  const snap = await db.collection('buildings').get();
   buildingsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   buildingList.innerHTML = '';
   buildingEmptyMsg.style.display = buildingsCache.length === 0 ? 'block' : 'none';
@@ -113,7 +113,6 @@ async function loadObjects() {
   objectList.innerHTML = '<li class="loading-msg">Loading...</li>';
   const snap = await db.collection('objects')
     .where('buildingId', '==', currentBuildingId)
-    .orderBy('createdAt')
     .get();
   objectsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   objectList.innerHTML = '';
